@@ -96,7 +96,7 @@ returns an embeddable WebRTC player URL (sub-second latency). Requires go2rtc
 running — see [Live preview](preview.md).
 
 ```bash
-curl "http://pi:8800/webrtc/start?url=rtsp://192.168.1.176:554/live/second/unicast/av_stream"
+curl "http://pi:8800/webrtc/start?url=rtsp://user:pass@cam:554/stream"
 # -> {"embed":"http://pi:1984/webrtc.html?src=preview"}
 ```
 

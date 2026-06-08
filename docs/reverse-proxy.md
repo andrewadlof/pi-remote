@@ -106,11 +106,11 @@ http:
     pi-remote:
       loadBalancer:
         servers:
-          - url: "http://192.168.1.50:8800"     # the Pi
+          - url: "http://<pi-ip>:8800"     # the Pi
     go2rtc:
       loadBalancer:
         servers:
-          - url: "http://192.168.1.50:1984"     # the Pi
+          - url: "http://<pi-ip>:1984"     # the Pi
 ```
 
 ### Running Traefik (Docker Compose)

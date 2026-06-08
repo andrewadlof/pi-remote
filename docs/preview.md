@@ -91,7 +91,8 @@ sudo tee /etc/go2rtc.yaml >/dev/null <<'YAML'
 api:
   listen: ":1984"
 streams:
-  android: rtsp://192.168.1.176:554/live/second/unicast/av_stream
+  # replace with your camera's RTSP URL (the one you tested with ffmpeg)
+  android: rtsp://user:pass@CAMERA_IP:554/your/stream/path
 YAML
 
 # service

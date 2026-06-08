@@ -62,8 +62,8 @@ If `discover` lists several, pick the one aimed at the box. Since power is IR,
 until one prints "Saved", then lock it in:
 
 ```bash
-sudo python3 /opt/pi-remote/ir_tool.py learn power 192.168.1.134   # try each IP
-sudo python3 /opt/pi-remote/ir_tool.py use 192.168.1.134           # the one that saved
+sudo python3 /opt/pi-remote/ir_tool.py learn power <rm4-ip>   # try each IP from `discover`
+sudo python3 /opt/pi-remote/ir_tool.py use <rm4-ip>          # the one that printed "Saved"
 ```
 
 `use` writes the chosen device to `PI_REMOTE_IR_DEVFILE` so future sends are fast
