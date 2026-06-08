@@ -26,6 +26,32 @@ helper for IR.
 - Boot-persistent via **systemd**; reproducible via **Ansible**
 - No third-party Python deps for the core server
 
+## Hardware requirements
+
+### Required
+
+| Item | Notes |
+| --- | --- |
+| **Raspberry Pi with USB-OTG** | Pi Zero, **Zero W** (used here), Zero 2 W, or any Pi whose USB port supports peripheral/gadget mode. The Zero W is armv6 — see the [IR install notes](docs/ir.md). |
+| **microSD card** | 8 GB+, with Raspberry Pi OS (Bookworm or Trixie). |
+| **USB data cable** | Micro-USB that carries **data**, not charge-only. Plug it into the Pi's inner **`USB`** (OTG) port — **not** the `PWR` port. |
+| **Android TV box (the target)** | With a spare USB port. It powers the Pi over that data port, so no separate Pi power supply is usually needed. |
+| **Wi-Fi network** | For the HTTP API / web remote / Homey (and to reach a Broadlink). The Zero W has built-in Wi-Fi. |
+
+### Optional
+
+| Item | Enables |
+| --- | --- |
+| **Broadlink RM4 Mini** (or similar Wi-Fi IR blaster) | True IR **power on/off** for boxes whose power button is IR-only (USB power is cut in standby, so HID can't wake them). |
+| **The box's original IR remote** | One-time IR **learning** of the power (or any) code into the RM4. |
+| **Homey hub** | Automating buttons via Flows. Any HTTP-capable controller works too. |
+
+> [!NOTE]
+> **Why the inner USB port matters:** on the Pi Zero family the inner port
+> labelled **`USB`** is the OTG/data port that can act as a USB device; the
+> `PWR` port is power-only. The gadget only enumerates against a real USB host
+> (the box), not a dumb charger.
+
 ## Repository layout
 
 ```
