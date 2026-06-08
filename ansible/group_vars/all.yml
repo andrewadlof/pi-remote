@@ -26,4 +26,5 @@ gadget_product_id: "0x0104"
 
 # ---------- features / behaviour ----------
 install_broadlink: true        # install python-broadlink for IR (RM4 etc.)
+install_ffmpeg: true           # install ffmpeg for the RTSP live-preview relay
 allow_reboot: true             # reboot automatically when boot config changes

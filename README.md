@@ -28,6 +28,7 @@ helper for IR.
 - D-pad / OK / Back navigation, free-text entry, key combos (Ctrl+A, Alt+Tab)
 - Media transport + volume via HID consumer control
 - IR **power** (and any other IR button) via a Broadlink RM4
+- **Live preview** of the box's screen (RTSP→HLS relay) under the remote
 - Mobile-friendly **web remote** (Add-to-Home-Screen capable)
 - Optional shared-secret auth; CORS enabled
 - Boot-persistent via **systemd**; reproducible via **Ansible**
@@ -51,6 +52,7 @@ helper for IR.
 | --- | --- |
 | **Broadlink RM4 Mini** (or similar Wi-Fi IR blaster) | True IR **power on/off** for boxes whose power button is IR-only (USB power is cut in standby, so HID can't wake them). |
 | **The box's original IR remote** | One-time IR **learning** of the power (or any) code into the RM4. |
+| **HDMI→RTSP capture or IP camera** | **Live preview** of the box's screen in the web remote (needs `ffmpeg` on the Pi). |
 | **Homey hub** | Automating buttons via Flows. Any HTTP-capable controller works too. |
 
 > [!NOTE]

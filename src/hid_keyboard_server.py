@@ -17,7 +17,7 @@ Configuration is read from environment variables (see config/config.example.env)
   PI_REMOTE_PORT, PI_REMOTE_API_KEY, PI_REMOTE_KEY_DELAY,
   PI_REMOTE_HTML, PI_REMOTE_IR_TOOL, PI_REMOTE_HID_KBD, PI_REMOTE_HID_CONSUMER
 """
-import json, os, subprocess, sys, time
+import glob, json, os, re, subprocess, sys, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -28,6 +28,8 @@ IR_TOOL      = os.environ.get("PI_REMOTE_IR_TOOL", "/opt/pi-remote/ir_tool.py")
 API_KEY      = os.environ.get("PI_REMOTE_API_KEY", "")
 KEY_DELAY    = float(os.environ.get("PI_REMOTE_KEY_DELAY", "0.008"))
 PORT         = int(os.environ.get("PI_REMOTE_PORT", "8800"))
+STREAM_DIR   = os.environ.get("PI_REMOTE_STREAM_DIR", "/dev/shm/pi-remote-stream")
+FFMPEG       = os.environ.get("PI_REMOTE_FFMPEG", "ffmpeg")
 
 SHIFT = 0x02
 _MODS = {'CTRL':0x01,'SHIFT':0x02,'ALT':0x04,'GUI':0x08,'WIN':0x08,'META':0x08,
@@ -106,6 +108,41 @@ def ir_send(name):
     if r.returncode != 0:
         raise RuntimeError((r.stderr or r.stdout).strip() or "ir send failed")
 
+# --- RTSP -> HLS live preview (ffmpeg remux, no transcode) ---
+_ffmpeg = None
+def stream_start(url):
+    global _ffmpeg
+    url = (url or "").strip()
+    if not re.match(r'^rtsps?://', url, re.I):
+        raise ValueError("only rtsp:// URLs can be relayed")
+    stream_stop()
+    os.makedirs(STREAM_DIR, exist_ok=True)
+    for f in glob.glob(os.path.join(STREAM_DIR, "*")):
+        try: os.remove(f)
+        except OSError: pass
+    cmd = [FFMPEG, "-nostdin", "-loglevel", "error",
+           "-rtsp_transport", "tcp", "-fflags", "nobuffer",
+           "-i", url, "-an", "-c:v", "copy",
+           "-f", "hls", "-hls_time", "1", "-hls_list_size", "4",
+           "-hls_flags", "delete_segments+append_list+omit_endlist",
+           "-hls_segment_filename", os.path.join(STREAM_DIR, "seg_%05d.ts"),
+           os.path.join(STREAM_DIR, "live.m3u8")]
+    try:
+        _ffmpeg = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except FileNotFoundError:
+        raise RuntimeError("ffmpeg is not installed")
+    return "/stream/live.m3u8"
+
+def stream_stop():
+    global _ffmpeg
+    if _ffmpeg and _ffmpeg.poll() is None:
+        try:
+            _ffmpeg.terminate(); _ffmpeg.wait(timeout=3)
+        except Exception:
+            try: _ffmpeg.kill()
+            except Exception: pass
+    _ffmpeg = None
+
 class Handler(BaseHTTPRequestHandler):
     def _auth(self, q):
         if not API_KEY: return True
@@ -128,6 +165,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Type','text/html; charset=utf-8')
         self.send_header('Content-Length',str(len(body)))
         self.end_headers(); self.wfile.write(body)
+    def _serve_stream(self, path):
+        name = path[len('/stream/'):]
+        if not re.match(r'^[A-Za-z0-9_.\-]+\.(m3u8|ts)$', name):
+            return self._send(404, {'error': 'not found'})
+        try:
+            with open(os.path.join(STREAM_DIR, name), 'rb') as f: body = f.read()
+        except FileNotFoundError:
+            return self._send(404, {'error': 'not found'})
+        ctype = 'application/vnd.apple.mpegurl' if name.endswith('.m3u8') else 'video/mp2t'
+        self.send_response(200); self._cors()
+        self.send_header('Content-Type', ctype)
+        self.send_header('Cache-Control', 'no-store')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers(); self.wfile.write(body)
     def _parse(self):
         u = urlparse(self.path); return u.path, parse_qs(u.query)
     def _json(self):
@@ -145,6 +196,8 @@ class Handler(BaseHTTPRequestHandler):
     def _handle(self, post):
         path, q = self._parse()
         if path in ('/', '/remote', '/index.html'): return self._html()
+        if path.startswith('/stream/') and path not in ('/stream/start', '/stream/stop'):
+            return self._serve_stream(path)
         if not self._auth(q): return self._send(401, {'error':'unauthorized'})
         d = self._json() if post else {}
         def gv(k):
@@ -157,10 +210,13 @@ class Handler(BaseHTTPRequestHandler):
             if path in ('/key','/press'): press(gv('key'), m); return self._send(200, {'pressed': gv('key')})
             if path == '/media':          media(gv('key')); return self._send(200, {'media': gv('key')})
             if path == '/ir':             ir_send(gv('cmd')); return self._send(200, {'ir': gv('cmd')})
+            if path == '/stream/start':   return self._send(200, {'hls': stream_start(gv('url'))})
+            if path == '/stream/stop':    stream_stop(); return self._send(200, {'stopped': True})
         except KeyError as e:          return self._send(400, {'error':'unknown key: %s' % e})
-        except RuntimeError as e:      return self._send(502, {'error':'ir: %s' % e})
+        except ValueError as e:        return self._send(400, {'error':'%s' % e})
+        except RuntimeError as e:      return self._send(502, {'error':'%s' % e})
         except FileNotFoundError as e: return self._send(503, {'error':'device missing: %s' % e})
-        return self._send(200, {'status':'ok','endpoints':['/','/type','/key','/press','/media','/ir']})
+        return self._send(200, {'status':'ok','endpoints':['/','/type','/key','/press','/media','/ir','/stream/start','/stream/stop']})
     def log_message(self, *a): pass
 
 def wait_for(path, timeout=30):

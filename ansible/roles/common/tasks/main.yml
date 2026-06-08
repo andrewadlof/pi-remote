@@ -9,3 +9,9 @@
     name:
       - python3
     state: present
+
+- name: Install ffmpeg (RTSP live-preview relay)
+  ansible.builtin.apt:
+    name: ffmpeg
+    state: present
+  when: install_ffmpeg | bool

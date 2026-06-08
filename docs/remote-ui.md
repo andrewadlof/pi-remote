@@ -24,6 +24,7 @@ app-like remote icon.
 | Media | ⏮ ⏯ ⏭, Vol −, Mute, Vol + |
 | System | ⏻ Power (IR), 🌙 Screen off |
 | Type text | text field + Send, Del, Space, Enter |
+| Live preview | stream URL + Load, video, Stop — see [Live preview](preview.md) |
 
 ## How buttons map to the API
 

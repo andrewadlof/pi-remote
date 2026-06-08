@@ -24,6 +24,8 @@
   input{flex:3;border:0;border-radius:14px;padding:14px;font-size:16px;background:var(--card);color:var(--txt);}
   .grp{width:100%;background:var(--card);padding:12px;border-radius:18px;display:flex;flex-direction:column;gap:10px;}
   .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.45;margin-left:4px;}
+  video{width:100%;border-radius:14px;background:#000;aspect-ratio:16/9;}
+  .note{font-size:12px;opacity:.6;min-height:15px;margin-left:4px;}
 </style>
 </head>
 <body>
@@ -78,6 +80,20 @@
   </div>
 </div>
 
+<div class="grp">
+  <div class="lbl">Live preview</div>
+  <div class="row">
+    <input id="surl" placeholder="rtsp://…  or  https://….m3u8" autocapitalize="off" autocomplete="off" spellcheck="false">
+    <button onclick="loadStream()">Load</button>
+  </div>
+  <video id="video" controls playsinline muted></video>
+  <div class="row">
+    <button class="sec" onclick="stopStream()">⏹ Stop preview</button>
+  </div>
+  <div id="smsg" class="note"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 <script>
   var TOKEN = new URLSearchParams(location.search).get('token') || '';
   function auth(qs){ if(!TOKEN) return qs; return qs ? qs+'&token='+encodeURIComponent(TOKEN) : 'token='+encodeURIComponent(TOKEN); }
@@ -92,6 +108,46 @@
     el.value='';
   }
   document.getElementById('t').addEventListener('keydown',function(e){ if(e.key==='Enter') sendText(); });
+
+  // ---- Live preview ----
+  var hls=null, smsg=document.getElementById('smsg');
+  function setMsg(t){ smsg.textContent=t||''; }
+  (function(){ var s=localStorage.getItem('pi_remote_surl'); if(s) document.getElementById('surl').value=s; })();
+  function destroyHls(){ if(hls){ try{hls.destroy();}catch(e){} hls=null; } }
+  function playUrl(u){
+    var v=document.getElementById('video'); destroyHls();
+    if(/\.m3u8(\?|$)/i.test(u)){
+      if(window.Hls && Hls.isSupported()){
+        hls=new Hls({lowLatencyMode:true,liveSyncDuration:2});
+        hls.loadSource(u); hls.attachMedia(v);
+        hls.on(Hls.Events.ERROR,function(_,d){ if(d.fatal) setMsg('stream error: '+d.details); });
+        v.play().catch(function(){});
+      } else if(v.canPlayType('application/vnd.apple.mpegurl')){
+        v.src=u; v.play().catch(function(){});
+      } else { setMsg('HLS not supported in this browser'); }
+    } else {
+      v.src=u; v.play().catch(function(){});
+    }
+  }
+  function loadStream(){
+    var u=document.getElementById('surl').value.trim();
+    if(!u){ setMsg('enter a stream URL'); return; }
+    localStorage.setItem('pi_remote_surl', u);
+    if(/^rtsps?:\/\//i.test(u)){
+      setMsg('starting RTSP relay…');
+      var a=auth('url='+encodeURIComponent(u));
+      fetch('/stream/start'+(a?'?'+a:'')).then(function(r){ return r.json(); })
+        .then(function(j){
+          if(j.hls){ setMsg('relaying via ffmpeg (~3s delay)…'); setTimeout(function(){ playUrl(j.hls); }, 1800); }
+          else { setMsg('relay error: '+(j.error||'unknown')); }
+        }).catch(function(){ setMsg('relay request failed'); });
+    } else { setMsg(''); playUrl(u); }
+  }
+  function stopStream(){
+    var v=document.getElementById('video'); destroyHls(); v.removeAttribute('src'); v.load();
+    var a=auth(''); fetch('/stream/stop'+(a?'?'+a:'')).catch(function(){});
+    setMsg('stopped');
+  }
 </script>
 </body>
 </html>

@@ -75,6 +75,20 @@ curl "http://pi:8800/ir?cmd=power"
 
 Response: `{"ir":"power"}`. Errors return `502` with the helper's message.
 
+## `GET /stream/start` · `GET /stream/stop` — RTSP live preview
+
+Relays an `rtsp://` source to HLS via ffmpeg so the browser can play it (see
+[Live preview](preview.md)).
+
+```bash
+curl "http://pi:8800/stream/start?url=rtsp://user:pass@cam/stream"
+# -> {"hls":"/stream/live.m3u8"}
+curl "http://pi:8800/stream/stop"
+```
+
+`start`/`stop` honour the API key. The generated playlist/segments are served at
+`GET /stream/<name>.m3u8|.ts` **without** auth so any HLS player can read them.
+
 ## Status / errors
 
 | Code | Meaning |
