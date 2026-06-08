@@ -3,3 +3,4 @@
 # Using this file:    uv pip install -r docs/requirements.txt
 mkdocs>=1.5
 mkdocs-material>=9.5
+mkdocstrings[python]>=0.24

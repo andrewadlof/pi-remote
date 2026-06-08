@@ -13,7 +13,7 @@ dependencies = []
 # IR support (installed on the Pi via apt + --no-deps; see docs/ir.md)
 ir = ["broadlink"]
 # Documentation site
-docs = ["mkdocs>=1.5", "mkdocs-material>=9.5"]
+docs = ["mkdocs>=1.5", "mkdocs-material>=9.5", "mkdocstrings[python]>=0.24"]
 
 [project.urls]
 Homepage = "https://github.com/andrewadlof/pi-remote"
