@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# MkDocs build output
+site/
+
+# Ansible — local inventory & secrets (keep the .example files)
+ansible/inventory.ini
+ansible/group_vars/*.local.yml
+*.retry
+
+# Runtime data (IR codes / cached device) — never committed
+ir_codes.json
+ir_device.json
