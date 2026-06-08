@@ -97,25 +97,83 @@
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 <script>
+  // API key forwarded on every request, read from this page's own ?token=… (empty if unset).
   var TOKEN = new URLSearchParams(location.search).get('token') || '';
+
+  /**
+   * Append the API token to a query string when one is configured.
+   * @param {string} qs - Existing query string (without leading "?").
+   * @returns {string} The query string including the token if set.
+   */
   function auth(qs){ if(!TOKEN) return qs; return qs ? qs+'&token='+encodeURIComponent(TOKEN) : 'token='+encodeURIComponent(TOKEN); }
+
+  /**
+   * Fire-and-forget GET to an endpoint (auth added); network errors are ignored.
+   * @param {string} path - Endpoint path, e.g. "/key".
+   * @param {string} [qs] - Optional query string (without leading "?").
+   * @returns {void}
+   */
   function hit(path, qs){ var a=auth(qs||''); fetch(path+(a?'?'+a:'')).catch(function(){}); }
+
+  /**
+   * Press a keyboard / named key via /key.
+   * @param {string} n - Key name or character (e.g. "DOWN", "ENTER", "a").
+   * @returns {void}
+   */
   function k(n){ hit('/key','key='+n); }
+
+  /**
+   * Send a consumer-control (media) key via /media.
+   * @param {string} n - Media name (e.g. "VOLUP", "PLAYPAUSE", "HOME").
+   * @returns {void}
+   */
   function m(n){ hit('/media','key='+n); }
+
+  /**
+   * Send a learned IR code via /ir.
+   * @param {string} n - IR command name (e.g. "power").
+   * @returns {void}
+   */
   function ir(n){ hit('/ir','cmd='+n); }
+
+  /**
+   * POST the text-box contents to /type, then clear the box.
+   * @returns {void}
+   */
   function sendText(){
     var el=document.getElementById('t'), v=el.value; if(!v) return;
     var a=auth('');
     fetch('/type'+(a?'?'+a:''),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:v})}).catch(function(){});
     el.value='';
   }
+  // Submit the text box on Enter.
   document.getElementById('t').addEventListener('keydown',function(e){ if(e.key==='Enter') sendText(); });
 
   // ---- Live preview ----
   var hls=null, smsg=document.getElementById('smsg');
+
+  /**
+   * Show a short status line under the preview.
+   * @param {string} [t] - Message text; empty/omitted clears it.
+   * @returns {void}
+   */
   function setMsg(t){ smsg.textContent=t||''; }
+
+  // On load: restore the last stream URL and auto-start WebRTC (the default preview).
   (function(){ var s=localStorage.getItem('pi_remote_surl'); if(s){ document.getElementById('surl').value=s; loadWebrtc(); } })();
+
+  /**
+   * Tear down the active hls.js instance, if any.
+   * @returns {void}
+   */
   function destroyHls(){ if(hls){ try{hls.destroy();}catch(e){} hls=null; } }
+
+  /**
+   * Play a browser-playable URL in the <video> element. Uses hls.js for .m3u8
+   * (with native-HLS fallback); otherwise sets the URL as the video source.
+   * @param {string} u - An .m3u8 / .mp4 / .webm URL.
+   * @returns {void}
+   */
   function playUrl(u){
     var v=document.getElementById('video'); destroyHls();
     if(/\.m3u8(\?|$)/i.test(u)){
@@ -131,6 +189,11 @@
       v.src=u; v.play().catch(function(){});
     }
   }
+  /**
+   * HLS preview: relay an rtsp:// URL through the server (ffmpeg) then play it,
+   * or play a pasted .m3u8 / .mp4 URL directly.
+   * @returns {void}
+   */
   function loadStream(){
     var u=document.getElementById('surl').value.trim();
     if(!u){ setMsg('enter a stream URL'); return; }
@@ -146,6 +209,12 @@
         }).catch(function(){ setMsg('relay request failed'); });
     } else { setMsg(''); playUrl(u); }
   }
+  /**
+   * Poll the HLS playlist until it exists (ffmpeg needs a moment), then play it.
+   * @param {string} url - The HLS playlist URL.
+   * @param {number} tries - Remaining attempts (~0.7s apart) before giving up.
+   * @returns {void}
+   */
   function waitForManifest(url, tries){
     fetch(url, {cache:'no-store'}).then(function(r){
       if(r.ok){ setMsg('live (~3s delay)'); playUrl(url); }
@@ -156,11 +225,26 @@
       else { setMsg('stream fetch failed'); }
     });
   }
+  /**
+   * Switch the preview area to the <video> element (hide the WebRTC iframe).
+   * @returns {void}
+   */
   function showVideo(){ var f=document.getElementById('wrtc'); f.src='about:blank'; f.style.display='none'; document.getElementById('video').style.display=''; }
+
+  /**
+   * Switch the preview area to the WebRTC iframe and load a player URL.
+   * @param {string} src - The go2rtc webrtc.html embed URL.
+   * @returns {void}
+   */
   function showFrame(src){
     destroyHls(); var v=document.getElementById('video'); try{v.pause();}catch(e){} v.removeAttribute('src'); v.load();
     v.style.display='none'; var f=document.getElementById('wrtc'); f.src=src; f.style.display='';
   }
+  /**
+   * WebRTC preview (default): ask the server to register the URL with go2rtc,
+   * then embed the returned low-latency player.
+   * @returns {void}
+   */
   function loadWebrtc(){
     var u=document.getElementById('surl').value.trim();
     localStorage.setItem('pi_remote_surl', u);
@@ -171,6 +255,11 @@
       else { setMsg('webrtc error: '+(j.error||'unknown')); }
     }).catch(function(){ setMsg('webrtc request failed'); });
   }
+  /**
+   * Stop preview playback: tear down HLS, reset the video, hide the iframe,
+   * and tell the server to stop the ffmpeg relay.
+   * @returns {void}
+   */
   function stopStream(){
     destroyHls();
     var v=document.getElementById('video'); try{v.pause();}catch(e){} v.removeAttribute('src'); v.load();

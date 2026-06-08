@@ -1,13 +1,27 @@
 #!/bin/bash
-# pi-remote USB HID gadget setup (configfs).
-# Creates two HID functions on the Pi's USB-OTG port:
-#   hid.usb0 -> /dev/hidg0  standard boot keyboard (8-byte reports)
-#   hid.usb1 -> /dev/hidg1  consumer control       (2-byte LE usage codes)
+# ------------------------------------------------------------------------------
+# pi-remote USB HID gadget setup (Linux configfs)
 #
-# Run once at boot by usb-gadget.service. Requires:
+# Description
+#   Builds a composite USB gadget on the Pi's USB-OTG port that presents two HID
+#   functions to the connected host (e.g. an Android TV box):
+#     hid.usb0 -> /dev/hidg0  standard boot keyboard (8-byte reports)
+#     hid.usb1 -> /dev/hidg1  consumer control       (2-byte little-endian usage)
+#
+# Usage
+#   Run once as root at boot (via usb-gadget.service). Re-running while the gadget
+#   already exists will error on the existing symlinks; reboot for a clean build.
+#
+# Requires
 #   - dtoverlay=dwc2,dr_mode=peripheral in config.txt (under [all])
 #   - modules-load=dwc2 in cmdline.txt
+#   - the libcomposite module (modprobed below)
+#
+# Outputs
+#   /dev/hidg0 and /dev/hidg1, once the gadget is bound to the USB Device Controller.
+#
 # Based on the isticktoit.net composite-gadget recipe.
+# ------------------------------------------------------------------------------
 
 modprobe libcomposite
 
