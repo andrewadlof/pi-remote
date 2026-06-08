@@ -15,6 +15,9 @@ The server reads its settings from environment variables, supplied on the Pi by
 | `PI_REMOTE_IR_DEVFILE` | `/var/lib/pi-remote/ir_device.json` | Cached Broadlink device |
 | `PI_REMOTE_HID_KBD` | `/dev/hidg0` | Keyboard HID device node |
 | `PI_REMOTE_HID_CONSUMER` | `/dev/hidg1` | Consumer-control HID device node |
+| `PI_REMOTE_FFMPEG` | `ffmpeg` | ffmpeg binary for the RTSP live preview |
+| `PI_REMOTE_STREAM_DIR` | `/dev/shm/pi-remote-stream` | HLS output dir (keep on tmpfs) |
+| `PI_REMOTE_RTSP_TRANSPORT` | `tcp` | `tcp`/`udp`/`udp_multicast`/`http`/`auto` — use `udp_multicast` for multicast URLs |
 
 After editing, restart the service:
 

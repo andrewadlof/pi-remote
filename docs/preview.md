@@ -58,6 +58,10 @@ HLS player can read them (LAN only).
   Non-H.264 sources won't play without transcoding.
 - **SD-card wear**: HLS segments are written to `/dev/shm` (RAM) by default — keep
   it that way. Override with `PI_REMOTE_STREAM_DIR` only if you know why.
+- **RTSP transport**: defaults to `tcp`. **Multicast** camera URLs (those with
+  `/multicast/` in the path) need `PI_REMOTE_RTSP_TRANSPORT=udp_multicast` — a
+  forced TCP setup on a multicast stream fails with `461 Unsupported Transport`.
+  Other values: `udp`, `http`, `auto`.
 - **Latency**: HLS adds a few seconds. For near-real-time, run a dedicated
   RTSP→WebRTC server such as [go2rtc](https://github.com/AlexxIT/go2rtc) or
   [MediaMTX](https://github.com/bluenviron/mediamtx) on a capable host and paste

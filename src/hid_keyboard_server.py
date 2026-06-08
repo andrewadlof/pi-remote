@@ -30,6 +30,8 @@ KEY_DELAY    = float(os.environ.get("PI_REMOTE_KEY_DELAY", "0.008"))
 PORT         = int(os.environ.get("PI_REMOTE_PORT", "8800"))
 STREAM_DIR   = os.environ.get("PI_REMOTE_STREAM_DIR", "/dev/shm/pi-remote-stream")
 FFMPEG       = os.environ.get("PI_REMOTE_FFMPEG", "ffmpeg")
+# RTSP transport: tcp | udp | udp_multicast | http | auto (auto = let ffmpeg choose)
+RTSP_TRANSPORT = os.environ.get("PI_REMOTE_RTSP_TRANSPORT", "tcp")
 
 SHIFT = 0x02
 _MODS = {'CTRL':0x01,'SHIFT':0x02,'ALT':0x04,'GUI':0x08,'WIN':0x08,'META':0x08,
@@ -120,13 +122,14 @@ def stream_start(url):
     for f in glob.glob(os.path.join(STREAM_DIR, "*")):
         try: os.remove(f)
         except OSError: pass
-    cmd = [FFMPEG, "-nostdin", "-loglevel", "error",
-           "-rtsp_transport", "tcp", "-fflags", "nobuffer",
-           "-i", url, "-an", "-c:v", "copy",
-           "-f", "hls", "-hls_time", "1", "-hls_list_size", "4",
-           "-hls_flags", "delete_segments+append_list+omit_endlist",
-           "-hls_segment_filename", os.path.join(STREAM_DIR, "seg_%05d.ts"),
-           os.path.join(STREAM_DIR, "live.m3u8")]
+    cmd = [FFMPEG, "-nostdin", "-loglevel", "error", "-fflags", "nobuffer"]
+    if RTSP_TRANSPORT and RTSP_TRANSPORT.lower() != "auto":
+        cmd += ["-rtsp_transport", RTSP_TRANSPORT]
+    cmd += ["-i", url, "-an", "-c:v", "copy",
+            "-f", "hls", "-hls_time", "1", "-hls_list_size", "4",
+            "-hls_flags", "delete_segments+append_list+omit_endlist",
+            "-hls_segment_filename", os.path.join(STREAM_DIR, "seg_%05d.ts"),
+            os.path.join(STREAM_DIR, "live.m3u8")]
     try:
         _ffmpeg = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except FileNotFoundError:
