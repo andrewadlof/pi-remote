@@ -1,0 +1,21 @@
+---
+# python-broadlink for IR control (Broadlink RM4 etc.).
+# On the armv6 Pi Zero there is no prebuilt `cryptography` wheel, so we use the
+# apt-provided build and install broadlink with --no-deps to avoid a source build.
+
+- name: Install broadlink runtime dependencies (apt)
+  ansible.builtin.apt:
+    name:
+      - python3-cryptography
+      - python3-pip
+    state: present
+
+- name: Install python-broadlink (no deps; uses apt cryptography)
+  ansible.builtin.pip:
+    name: broadlink
+    state: present
+    extra_args: --break-system-packages --no-deps
+
+- name: Verify broadlink imports
+  ansible.builtin.command: "{{ python_bin }} -c 'import broadlink; print(broadlink.discover)'"
+  changed_when: false

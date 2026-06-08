@@ -1,0 +1,12 @@
+[Unit]
+Description=pi-remote USB HID gadget
+After=sys-kernel-config.mount
+Requires=sys-kernel-config.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart={{ gadget_script_path }}
+
+[Install]
+WantedBy=multi-user.target

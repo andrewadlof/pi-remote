@@ -1,0 +1,10 @@
+---
+# Handlers are play-global, so these are reused by other roles too.
+- name: reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: reboot pi
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+  when: allow_reboot | bool

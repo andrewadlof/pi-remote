@@ -1,0 +1,47 @@
+---
+# Put the Pi's USB-OTG port into peripheral mode and install the gadget script.
+
+- name: Enable dwc2 peripheral overlay (under [all] so it applies to the Pi Zero)
+  ansible.builtin.blockinfile:
+    path: "{{ boot_config }}"
+    marker: "# {mark} PI-REMOTE USB GADGET"
+    block: |
+      [all]
+      dtoverlay=dwc2,dr_mode=peripheral
+    create: false
+  notify: reboot pi
+
+- name: Load dwc2 driver from the kernel command line
+  ansible.builtin.replace:
+    path: "{{ boot_cmdline }}"
+    regexp: '^(?!.*\bmodules-load=dwc2\b)(.*\brootwait\b.*)$'
+    replace: '\1 modules-load=dwc2'
+  notify: reboot pi
+
+- name: Ensure dwc2 + libcomposite load at boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/pi-remote.conf
+    content: |
+      dwc2
+      libcomposite
+    mode: "0644"
+  notify: reboot pi
+
+- name: Install USB gadget script
+  ansible.builtin.copy:
+    src: "{{ repo_src }}/usb_gadget.sh"
+    dest: "{{ gadget_script_path }}"
+    mode: "0755"
+
+- name: Install usb-gadget.service
+  ansible.builtin.template:
+    src: usb-gadget.service.j2
+    dest: /etc/systemd/system/usb-gadget.service
+    mode: "0644"
+  notify: reload systemd
+
+- name: Enable usb-gadget.service
+  ansible.builtin.systemd:
+    name: usb-gadget.service
+    enabled: true
+    daemon_reload: true

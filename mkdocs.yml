@@ -1,0 +1,49 @@
+site_name: pi-remote
+site_description: >-
+  Turn a Raspberry Pi Zero into a USB-HID keyboard + media remote (plus
+  Broadlink IR) for an Android TV box, controllable over HTTP and from Homey.
+repo_url: https://github.com/andrewadlof/pi-remote
+repo_name: andrewadlof/pi-remote
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.integrate
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.details
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Configuration: configuration.md
+  - HTTP API: api.md
+  - USB Gadget: usb-gadget.md
+  - IR / Broadlink: ir.md
+  - Remote UI: remote-ui.md
+  - Homey integration: homey.md
+  - Troubleshooting: troubleshooting.md

@@ -1,0 +1,14 @@
+[Unit]
+Description=pi-remote HID keyboard HTTP bridge
+After=usb-gadget.service network-online.target
+Requires=usb-gadget.service
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=-{{ config_dir }}/config.env
+ExecStart={{ python_bin }} {{ app_dir }}/hid_keyboard_server.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

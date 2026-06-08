@@ -1,0 +1,44 @@
+---
+- name: Create pi-remote directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ app_dir }}"
+    - "{{ config_dir }}"
+    - "{{ data_dir }}"
+
+- name: Deploy application files
+  ansible.builtin.copy:
+    src: "{{ repo_src }}/{{ item.name }}"
+    dest: "{{ app_dir }}/{{ item.name }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { name: hid_keyboard_server.py, mode: "0755" }
+    - { name: ir_tool.py,            mode: "0755" }
+    - { name: remote.html,           mode: "0644" }
+  notify: restart hid server
+
+- name: Deploy config file
+  ansible.builtin.template:
+    src: config.env.j2
+    dest: "{{ config_dir }}/config.env"
+    mode: "0640"
+  notify: restart hid server
+
+- name: Install hid-keyboard-server.service
+  ansible.builtin.template:
+    src: hid-keyboard-server.service.j2
+    dest: /etc/systemd/system/hid-keyboard-server.service
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart hid server
+
+- name: Enable and start hid-keyboard-server
+  ansible.builtin.systemd:
+    name: hid-keyboard-server.service
+    enabled: true
+    state: started
+    daemon_reload: true

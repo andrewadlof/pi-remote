@@ -1,0 +1,5 @@
+---
+- name: restart hid server
+  ansible.builtin.systemd:
+    name: hid-keyboard-server.service
+    state: restarted
