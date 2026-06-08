@@ -84,8 +84,8 @@
   <div class="lbl">Live preview</div>
   <div class="row">
     <input id="surl" placeholder="rtsp://…  or  https://….m3u8" autocapitalize="off" autocomplete="off" spellcheck="false">
-    <button onclick="loadStream()">Load</button>
-    <button class="sec" onclick="loadWebrtc()" title="Low-latency via go2rtc">WebRTC</button>
+    <button onclick="loadWebrtc()" title="Low-latency via go2rtc">Load</button>
+    <button class="sec" onclick="loadStream()" title="HLS fallback (ffmpeg)">HLS</button>
   </div>
   <video id="video" controls playsinline muted></video>
   <iframe id="wrtc" allow="autoplay;fullscreen" style="display:none;width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#000;"></iframe>
@@ -114,7 +114,7 @@
   // ---- Live preview ----
   var hls=null, smsg=document.getElementById('smsg');
   function setMsg(t){ smsg.textContent=t||''; }
-  (function(){ var s=localStorage.getItem('pi_remote_surl'); if(s) document.getElementById('surl').value=s; })();
+  (function(){ var s=localStorage.getItem('pi_remote_surl'); if(s){ document.getElementById('surl').value=s; loadWebrtc(); } })();
   function destroyHls(){ if(hls){ try{hls.destroy();}catch(e){} hls=null; } }
   function playUrl(u){
     var v=document.getElementById('video'); destroyHls();

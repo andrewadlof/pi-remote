@@ -26,15 +26,13 @@ RTSP source ──▶ ffmpeg (remux, copy) ──▶ HLS in /dev/shm ──▶ h
 
 ## Using it
 
-1. Open the remote (`http://<pi>:8800/`).
-2. In **Live preview**, paste a URL and press **Load**:
-   - **`rtsp://…`** → the Pi starts the ffmpeg relay and plays the result
-     (≈3 s latency).
-   - **`https://….m3u8`** (HLS) → played directly by the browser, no Pi load.
-   - **`.mp4` / `.webm`** → played directly.
-3. **Stop preview** stops playback and the relay.
-
-The last URL is remembered in the browser (localStorage).
+1. Open the remote (`http://<pi>:8800/`). The last URL is remembered and the
+   preview **auto-starts in WebRTC** on open.
+2. In **Live preview**, with a URL in the box:
+   - **Load** → low-latency **WebRTC** via go2rtc (default).
+   - **HLS** → the ffmpeg RTSP→HLS relay (works without go2rtc; also plays a
+     pasted `.m3u8` / `.mp4` / `.webm` directly).
+3. **Stop preview** stops playback (and the HLS relay).
 
 ## Endpoints
 
@@ -67,10 +65,11 @@ HLS player can read them (LAN only).
 
 ## Low-latency WebRTC (go2rtc)
 
-The **WebRTC** button next to **Load** plays the stream through
+**Load** (the default preview button) plays the stream through
 [go2rtc](https://github.com/AlexxIT/go2rtc), which remuxes H.264 RTSP straight to
 WebRTC (no transcode) for **sub-second** latency — ideal for seeing remote inputs
-in real time. go2rtc has an **armv6** build that runs on the Pi Zero.
+in real time. go2rtc has an **armv6** build that runs on the Pi Zero. (The **HLS**
+button is the ffmpeg fallback.)
 
 How it works: the server registers the URL you typed with go2rtc's API and the
 page embeds go2rtc's WebRTC player (`http://<pi>:1984/webrtc.html?src=…`) in an
