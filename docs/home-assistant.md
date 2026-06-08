@@ -44,47 +44,20 @@ This is the thing that bites everyone:
     desktop browser. If a card is blank in the app, confirm it works in a desktop
     browser first to isolate the mixed-content rule.
 
-## Serving pi-remote over HTTPS (reverse proxy)
+## Serving pi-remote over HTTPS
 
-Put a reverse proxy in front and terminate TLS. **Caddy** is the easiest choice
-(automatic HTTPS, ~2 lines per route — lighter than Traefik for a couple of static
-backends). Example `Caddyfile` with a real domain (automatic Let's Encrypt):
+If your HA is HTTPS, put pi-remote (and go2rtc) behind a TLS reverse proxy and
+embed the `https://` URL instead. In short:
 
-```
-remote.example.com {
-    reverse_proxy 127.0.0.1:8800
-}
-```
+- **HLS works through the proxy out of the box** (its segments are served by
+  pi-remote itself — same origin).
+- **WebRTC** additionally needs go2rtc proxied and
+  `PI_REMOTE_GO2RTC_PUBLIC=https://cam.example.com` set on the Pi.
+- The cert must be **browser-trusted** — a self-signed cert fails inside an
+  iframe.
 
-Then embed `https://remote.example.com/?token=YOURKEY` in HA.
-
-- **HLS preview works out of the box** behind HTTPS — its playlist/segments are
-  served by pi-remote itself (same origin), so no mixed content. This is the
-  reliable choice for HTTPS/remote embedding (and a good reason the HLS fallback
-  exists).
-- **WebRTC behind HTTPS** also needs go2rtc proxied over HTTPS, plus an
-  HTTPS-aware embed URL. Add a second route:
-
-  ```
-  cam.example.com {
-      reverse_proxy 127.0.0.1:1984
-  }
-  ```
-
-  and set on the Pi:
-
-  ```
-  PI_REMOTE_GO2RTC_PUBLIC=https://cam.example.com
-  ```
-
-  so the player URL the page embeds is HTTPS. go2rtc's WebRTC **media** (port
-  8555) still flows directly between the browser and the Pi.
-
-!!! warning "Self-signed certs don't work in iframes"
-    A browser won't let you click through a certificate warning *inside* an
-    iframe, so a self-signed / `tls internal` cert silently fails to embed. Use a
-    **browser-trusted** cert — a real domain with Let's Encrypt (HTTP-01 if
-    reachable, or DNS-01 for LAN-only names) — or stick with the HTTP-LAN setup.
+Full **Caddy** and **Traefik** configs are on the
+**[Reverse proxy / TLS](reverse-proxy.md)** page.
 
 ## Homey
 

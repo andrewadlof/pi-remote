@@ -49,4 +49,5 @@ nav:
   - Live preview: preview.md
   - Homey integration: homey.md
   - Home Assistant: home-assistant.md
+  - Reverse proxy / TLS: reverse-proxy.md
   - Troubleshooting: troubleshooting.md
