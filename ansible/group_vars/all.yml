@@ -1,0 +1,29 @@
+---
+# ---------- where the repo's source files live (relative to ansible/) ----------
+repo_src: "{{ playbook_dir }}/../src"
+repo_config: "{{ playbook_dir }}/../config"
+
+# ---------- install layout on the Pi ----------
+app_dir: /opt/pi-remote
+config_dir: /etc/pi-remote
+data_dir: /var/lib/pi-remote
+gadget_script_path: /usr/local/sbin/pi-remote-usb-gadget
+python_bin: /usr/bin/python3
+
+# ---------- boot files ----------
+# Raspberry Pi OS Bookworm/Trixie use /boot/firmware; older releases use /boot.
+boot_config: /boot/firmware/config.txt
+boot_cmdline: /boot/firmware/cmdline.txt
+
+# ---------- HTTP bridge config (written to {{ config_dir }}/config.env) ----------
+pi_remote_port: 8800
+pi_remote_api_key: ""          # <-- set a long random string before LAN use
+pi_remote_key_delay: "0.008"
+
+# ---------- USB gadget identity ----------
+gadget_vendor_id: "0x1d6b"
+gadget_product_id: "0x0104"
+
+# ---------- features / behaviour ----------
+install_broadlink: true        # install python-broadlink for IR (RM4 etc.)
+allow_reboot: true             # reboot automatically when boot config changes

@@ -1,0 +1,16 @@
+---
+# Provision a Raspberry Pi Zero (W) as a USB-HID + IR remote bridge.
+#
+#   ansible-playbook site.yml
+#
+# A reboot is triggered automatically the first time the USB-gadget boot
+# settings change (set allow_reboot=false to skip and reboot yourself).
+- name: Provision pi-remote
+  hosts: pi_remote
+  become: true
+  roles:
+    - common
+    - usb_gadget
+    - hid_server
+    - role: broadlink_ir
+      when: install_broadlink | bool
