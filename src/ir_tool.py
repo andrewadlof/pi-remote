@@ -21,17 +21,80 @@ STORE   = os.environ.get("PI_REMOTE_IR_STORE",   "/var/lib/pi-remote/ir_codes.js
 DEVFILE = os.environ.get("PI_REMOTE_IR_DEVFILE", "/var/lib/pi-remote/ir_device.json")
 
 def _load(p, d):
+    """Load JSON from a file, returning a default on any error.
+
+    Parameters
+    ----------
+    p : str
+        Path to the JSON file.
+    d : object
+        Value to return if the file is missing or unreadable.
+
+    Returns
+    -------
+    object
+        The parsed JSON, or `d` on failure.
+    """
     try:
         with open(p) as f: return json.load(f)
     except Exception: return d
 def _save(p, o):
+    """Write an object to a file as pretty-printed JSON, creating parent dirs.
+
+    Parameters
+    ----------
+    p : str
+        Destination path.
+    o : object
+        JSON-serializable value to write.
+
+    Returns
+    -------
+    None
+    """
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, "w") as f: json.dump(o, f, indent=2)
 
 def _store_dev(dev):
+    """Persist a device's host/MAC/type to ``DEVFILE`` for fast reconnection.
+
+    Parameters
+    ----------
+    dev : broadlink.Device
+        An authenticated Broadlink device.
+
+    Returns
+    -------
+    None
+    """
     _save(DEVFILE, {"host": dev.host[0], "mac": dev.mac.hex(), "devtype": dev.devtype})
 
 def get_device(host=None, save=True):
+    """Resolve and authenticate the Broadlink device to use.
+
+    Resolution order: the explicit `host` (matched against discovery), then the
+    cached device in ``DEVFILE``, then LAN discovery. With multiple devices and no
+    `host`/cache, the user is asked to pick one and the process exits.
+
+    Parameters
+    ----------
+    host : str, optional
+        IP/host of a specific device to use. If omitted, use the cached device or
+        auto-discover.
+    save : bool, optional
+        Whether to persist the resolved device to ``DEVFILE`` (default ``True``).
+
+    Returns
+    -------
+    broadlink.Device
+        An authenticated device.
+
+    Raises
+    ------
+    SystemExit
+        If no device is found, the requested `host` is not present, or multiple
+        devices exist and none was selected.
+    """
     if host:
         match = None
         for d in broadlink.discover(timeout=5):
@@ -54,6 +117,17 @@ def get_device(host=None, save=True):
     devs[0].auth(); _store_dev(devs[0]); return devs[0]
 
 def cmd_discover():
+    """List every Broadlink device on the LAN (host, MAC, device type).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    SystemExit
+        If no Broadlink device is found.
+    """
     devs = broadlink.discover(timeout=5)
     if not devs: sys.exit("No Broadlink device found.")
     for d in devs:
@@ -61,10 +135,47 @@ def cmd_discover():
         print("Found %s  host=%s  mac=%s  devtype=0x%04x" % (d.type, d.host[0], d.mac.hex(), d.devtype))
 
 def cmd_use(host):
+    """Select and cache the active IR blaster by host.
+
+    Parameters
+    ----------
+    host : str
+        IP/host of the device to make the default (saved to ``DEVFILE``).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    SystemExit
+        If no device is found at `host`.
+    """
     dev = get_device(host, save=True)
     print("Active IR blaster set to %s (%s)." % (dev.host[0], dev.mac.hex()))
 
 def cmd_learn(name, host=None):
+    """Learn an IR code from the original remote and save it under `name`.
+
+    Puts the device into learning mode and polls for up to ~10 seconds while you
+    press the button on the source remote.
+
+    Parameters
+    ----------
+    name : str
+        Key to store the captured code under (e.g. ``"power"``).
+    host : str, optional
+        Specific device to learn on; otherwise the cached/auto-resolved device.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    SystemExit
+        If no device is available or no IR signal is captured before timeout.
+    """
     dev = get_device(host, save=False); dev.enter_learning()
     print(">> Aim your ORIGINAL remote at Broadlink %s and press the '%s' button now (10s)..."
           % (dev.host[0], name))
@@ -79,6 +190,24 @@ def cmd_learn(name, host=None):
     print("Saved '%s' (%d bytes)." % (name, len(packet)))
 
 def cmd_send(name, host=None):
+    """Send a previously learned IR code.
+
+    Parameters
+    ----------
+    name : str
+        Name of the saved code to transmit.
+    host : str, optional
+        Specific device to send from; otherwise the cached/auto-resolved device.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    SystemExit
+        If no code named `name` exists, or no device is available.
+    """
     codes = _load(STORE, {})
     if name not in codes: sys.exit("No saved code named '%s'." % name)
     get_device(host, save=False).send_data(base64.b64decode(codes[name]))

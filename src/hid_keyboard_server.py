@@ -73,18 +73,71 @@ _CONSUMER = {
 }
 
 def char_to_report(c):
+    """Map a single character to its USB HID keyboard report.
+
+    Parameters
+    ----------
+    c : str
+        A single character.
+
+    Returns
+    -------
+    tuple of (int, int) or None
+        ``(modifier_bitmask, usage_id)`` for the character, or ``None`` if the
+        character cannot be typed.
+    """
     if c in _SHIFTED: return (SHIFT, _BASE[_SHIFTED[c]])
     if c.isupper() and c.lower() in _BASE: return (SHIFT, _BASE[c.lower()])
     if c in _BASE: return (0, _BASE[c])
     return None
 def _modmask(mods):
+    """Combine modifier names into a HID modifier bitmask.
+
+    Parameters
+    ----------
+    mods : iterable of str or None
+        Modifier names (e.g. ``"CTRL"``, ``"SHIFT"``). Unknown names are ignored.
+
+    Returns
+    -------
+    int
+        Bitwise-OR of the matching modifier bits (``0`` if none).
+    """
     m = 0
     for x in (mods or []): m |= _MODS.get(str(x).upper(), 0)
     return m
 def _write_kbd(mod, code):
+    """Write one keyboard report to the HID device, then release all keys.
+
+    Parameters
+    ----------
+    mod : int
+        Modifier bitmask (byte 0 of the 8-byte report).
+    code : int
+        HID usage id of the key to press.
+
+    Returns
+    -------
+    None
+    """
     with open(HID_KBD, 'rb+') as fd:
         fd.write(bytes([mod,0,code,0,0,0,0,0])); fd.write(bytes(8))
 def type_text(text):
+    """Type a string on the USB keyboard, one character at a time.
+
+    Characters with no HID mapping are skipped. A ``KEY_DELAY`` pause is inserted
+    between keystrokes so the host does not drop fast input.
+
+    Parameters
+    ----------
+    text : str
+        The text to type.
+
+    Returns
+    -------
+    int
+        The number of characters actually sent.
+    """
     n = 0
     for c in text:
         r = char_to_report(c)
@@ -92,6 +145,25 @@ def type_text(text):
         _write_kbd(*r); n += 1; time.sleep(KEY_DELAY)
     return n
 def press(key, mods=None):
+    """Press a single key (named key or character) with optional modifiers.
+
+    Parameters
+    ----------
+    key : str
+        A named key (e.g. ``"ENTER"``, ``"DOWN"``, ``"F5"``) or a single
+        character (e.g. ``"a"``).
+    mods : iterable of str, optional
+        Modifier names to hold while pressing (e.g. ``["CTRL"]`` for Ctrl+key).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    KeyError
+        If `key` is neither a known named key nor a mappable single character.
+    """
     mod = _modmask(mods); key = str(key)
     if key.upper() in _NAMED:
         bm, code = _NAMED[key.upper()]; mod |= bm
@@ -102,12 +174,48 @@ def press(key, mods=None):
     else: raise KeyError(key)
     _write_kbd(mod, code)
 def media(name):
+    """Send a consumer-control (media) usage to the second HID device.
+
+    Parameters
+    ----------
+    name : str
+        Consumer-control name (e.g. ``"PLAYPAUSE"``, ``"VOLUP"``, ``"HOME"``);
+        case-insensitive.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    KeyError
+        If `name` is not a known consumer-control name.
+    """
     name = (name or "").upper()
     if name not in _CONSUMER: raise KeyError(name)
     code = _CONSUMER[name]
     with open(HID_CONSUMER, 'rb+') as fd:
         fd.write(bytes([code & 0xFF, (code >> 8) & 0xFF])); fd.write(bytes(2))
 def ir_send(name):
+    """Send a learned IR code by shelling out to ``ir_tool.py``.
+
+    Parameters
+    ----------
+    name : str
+        Name of a previously learned IR code (e.g. ``"power"``).
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    KeyError
+        If `name` is empty or contains path separators (``/`` or ``..``).
+    RuntimeError
+        If the ``ir_tool.py send`` subprocess exits non-zero (e.g. the Broadlink
+        is unreachable or the code is unknown).
+    """
     name = (name or "").strip()
     if not name or "/" in name or ".." in name: raise KeyError(name)
     env = dict(os.environ)
@@ -119,6 +227,30 @@ def ir_send(name):
 # --- RTSP -> HLS live preview (ffmpeg remux, no transcode) ---
 _ffmpeg = None
 def stream_start(url):
+    """Start an ffmpeg RTSP->HLS relay (remux only) for the live preview.
+
+    Any previous relay is stopped and the output directory is cleared first.
+    Video is copied (no transcoding) and audio is dropped, so it is light enough
+    for a Pi Zero. The ``RTSP_TRANSPORT`` setting is applied unless it is
+    ``"auto"``.
+
+    Parameters
+    ----------
+    url : str
+        The RTSP source URL.
+
+    Returns
+    -------
+    str
+        The path of the generated HLS playlist (``/stream/live.m3u8``).
+
+    Raises
+    ------
+    ValueError
+        If `url` is not an ``rtsp://`` / ``rtsps://`` URL.
+    RuntimeError
+        If the ffmpeg binary is not installed.
+    """
     global _ffmpeg
     url = (url or "").strip()
     if not re.match(r'^rtsps?://', url, re.I):
@@ -143,6 +275,15 @@ def stream_start(url):
     return "/stream/live.m3u8"
 
 def stream_stop():
+    """Stop the running ffmpeg relay, if any.
+
+    Terminates the process (escalating to kill on timeout) and resets the
+    module-level handle. Safe to call when no relay is running.
+
+    Returns
+    -------
+    None
+    """
     global _ffmpeg
     if _ffmpeg and _ffmpeg.poll() is None:
         try:
@@ -153,7 +294,33 @@ def stream_stop():
     _ffmpeg = None
 
 def webrtc_start(url, host):
-    """Register an RTSP source with go2rtc and return an embeddable WebRTC player URL."""
+    """Register an RTSP source with go2rtc and build a WebRTC player URL.
+
+    If `url` is given it is registered as the ``preview`` stream via the go2rtc
+    API (trying ``PUT`` then ``POST``); otherwise the preconfigured
+    ``GO2RTC_STREAM`` is used. The returned URL uses ``GO2RTC_PUBLIC`` if set
+    (for HTTPS / reverse-proxy setups) or the request host otherwise.
+
+    Parameters
+    ----------
+    url : str
+        RTSP source URL, or empty to use the preconfigured stream.
+    host : str
+        The request's ``Host`` header, used to build the player URL when
+        ``GO2RTC_PUBLIC`` is not set.
+
+    Returns
+    -------
+    str
+        An embeddable go2rtc ``webrtc.html`` URL.
+
+    Raises
+    ------
+    ValueError
+        If `url` is non-empty but not an ``rtsp://`` / ``rtsps://`` URL.
+    RuntimeError
+        If go2rtc cannot be reached to register the stream.
+    """
     name = GO2RTC_STREAM
     url = (url or "").strip()
     if url:
@@ -179,19 +346,61 @@ def webrtc_start(url, host):
     return "%s/webrtc.html?src=%s" % (base, name)
 
 class Handler(BaseHTTPRequestHandler):
+    """HTTP request handler exposing the pi-remote API and web remote.
+
+    Routes requests to the keyboard / consumer / IR / preview helpers, serves the
+    remote UI and HLS segments, applies optional API-key auth, and emits CORS
+    headers. Methods prefixed with ``_`` are internal helpers; the ``do_*``
+    methods are the standard
+    :class:`http.server.BaseHTTPRequestHandler` entry points.
+    """
     def _auth(self, q):
+        """Return whether the request is authorized.
+
+        Parameters
+        ----------
+        q : dict
+            Parsed query string (values are lists, as returned by ``parse_qs``).
+
+        Returns
+        -------
+        bool
+            ``True`` if no API key is configured, or the request supplies the
+            matching key via the ``X-API-Key`` header or the ``token`` query
+            parameter.
+        """
         if not API_KEY: return True
         return (self.headers.get('X-API-Key') or q.get('token',[''])[0]) == API_KEY
     def _cors(self):
+        """Emit permissive CORS headers (origin ``*``) on the current response."""
         self.send_header('Access-Control-Allow-Origin','*')
         self.send_header('Access-Control-Allow-Headers','Content-Type,X-API-Key')
     def _send(self, code, obj):
+        """Send a JSON response.
+
+        Parameters
+        ----------
+        code : int
+            HTTP status code.
+        obj : object
+            JSON-serializable response body.
+
+        Returns
+        -------
+        None
+        """
         body = json.dumps(obj).encode()
         self.send_response(code); self._cors()
         self.send_header('Content-Type','application/json')
         self.send_header('Content-Length',str(len(body)))
         self.end_headers(); self.wfile.write(body)
     def _html(self):
+        """Serve the web remote page (``REMOTE_HTML``), or a placeholder if absent.
+
+        Returns
+        -------
+        None
+        """
         try:
             with open(REMOTE_HTML,'rb') as f: body = f.read()
         except FileNotFoundError:
@@ -201,6 +410,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Length',str(len(body)))
         self.end_headers(); self.wfile.write(body)
     def _serve_stream(self, path):
+        """Serve an HLS playlist or segment from ``STREAM_DIR``.
+
+        Only filenames matching ``*.m3u8`` / ``*.ts`` are served (no auth, so any
+        HLS player can read them); anything else returns 404.
+
+        Parameters
+        ----------
+        path : str
+            Request path beginning with ``/stream/`` (e.g. ``/stream/live.m3u8``).
+
+        Returns
+        -------
+        None
+        """
         name = path[len('/stream/'):]
         if not re.match(r'^[A-Za-z0-9_.\-]+\.(m3u8|ts)$', name):
             return self._send(404, {'error': 'not found'})
@@ -215,20 +438,57 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(body)))
         self.end_headers(); self.wfile.write(body)
     def _parse(self):
+        """Split the request URL into its path and parsed query.
+
+        Returns
+        -------
+        tuple of (str, dict)
+            The URL path and the ``parse_qs`` mapping of the query string.
+        """
         u = urlparse(self.path); return u.path, parse_qs(u.query)
     def _json(self):
+        """Read and parse the request body as JSON.
+
+        Returns
+        -------
+        dict
+            The parsed object, ``{}`` if the body is empty, or
+            ``{"text": <raw>}`` if the body is not valid JSON.
+        """
         n = int(self.headers.get('Content-Length',0) or 0)
         if not n: return {}
         raw = self.rfile.read(n)
         try: return json.loads(raw)
         except Exception: return {'text': raw.decode('utf-8','ignore')}
     def do_OPTIONS(self):
+        """Answer a CORS preflight request with the allowed methods and headers."""
         self.send_response(204); self._cors()
         self.send_header('Access-Control-Allow-Methods','GET,POST,OPTIONS')
         self.send_header('Content-Length','0'); self.end_headers()
-    def do_GET(self):  self._handle(False)
-    def do_POST(self): self._handle(True)
+    def do_GET(self):
+        """Handle an HTTP GET request (parameters from the query string)."""
+        self._handle(False)
+    def do_POST(self):
+        """Handle an HTTP POST request (JSON body, with query-string fallback)."""
+        self._handle(True)
     def _handle(self, post):
+        """Dispatch a request to the matching endpoint.
+
+        Serves the UI and HLS files without auth, enforces the API key for
+        everything else, then routes ``/type``, ``/key``, ``/press``, ``/media``,
+        ``/ir``, ``/stream/start``, ``/stream/stop`` and ``/webrtc/start``.
+        Helper exceptions are mapped to HTTP error codes (400 for bad input, 502
+        for IR/relay failures, 503 for a missing HID device).
+
+        Parameters
+        ----------
+        post : bool
+            ``True`` for POST (read a JSON body), ``False`` for GET.
+
+        Returns
+        -------
+        None
+        """
         path, q = self._parse()
         if path in ('/', '/remote', '/index.html'): return self._html()
         if path.startswith('/stream/') and path not in ('/stream/start', '/stream/stop'):
@@ -236,6 +496,7 @@ class Handler(BaseHTTPRequestHandler):
         if not self._auth(q): return self._send(401, {'error':'unauthorized'})
         d = self._json() if post else {}
         def gv(k):
+            """Get request value `k` from the JSON body (POST) or query string."""
             if post and k in d: return d[k]
             return q.get(k, [''])[0]
         m = d.get('mods') or d.get('mod') or q.get('mod')
@@ -253,9 +514,25 @@ class Handler(BaseHTTPRequestHandler):
         except RuntimeError as e:      return self._send(502, {'error':'%s' % e})
         except FileNotFoundError as e: return self._send(503, {'error':'device missing: %s' % e})
         return self._send(200, {'status':'ok','endpoints':['/','/type','/key','/press','/media','/ir','/stream/start','/stream/stop','/webrtc/start']})
-    def log_message(self, *a): pass
+    def log_message(self, *a):
+        """Suppress the default per-request logging to stderr."""
+        pass
 
 def wait_for(path, timeout=30):
+    """Block until a filesystem path exists or a timeout elapses.
+
+    Parameters
+    ----------
+    path : str
+        Path to wait for (e.g. the HID device node).
+    timeout : float, optional
+        Maximum seconds to wait (default ``30``). Returns regardless once
+        elapsed.
+
+    Returns
+    -------
+    None
+    """
     dl = time.time() + timeout
     while not os.path.exists(path) and time.time() < dl: time.sleep(0.5)
 
