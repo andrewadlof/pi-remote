@@ -118,7 +118,7 @@
     var v=document.getElementById('video'); destroyHls();
     if(/\.m3u8(\?|$)/i.test(u)){
       if(window.Hls && Hls.isSupported()){
-        hls=new Hls({lowLatencyMode:true,liveSyncDuration:2});
+        hls=new Hls({lowLatencyMode:true,liveSyncDuration:2,manifestLoadingMaxRetry:8,manifestLoadingRetryDelay:1000,levelLoadingMaxRetry:8});
         hls.loadSource(u); hls.attachMedia(v);
         hls.on(Hls.Events.ERROR,function(_,d){ if(d.fatal) setMsg('stream error: '+d.details); });
         v.play().catch(function(){});
@@ -138,10 +138,20 @@
       var a=auth('url='+encodeURIComponent(u));
       fetch('/stream/start'+(a?'?'+a:'')).then(function(r){ return r.json(); })
         .then(function(j){
-          if(j.hls){ setMsg('relaying via ffmpeg (~3s delay)…'); setTimeout(function(){ playUrl(j.hls); }, 1800); }
+          if(j.hls){ setMsg('relaying via ffmpeg, waiting for stream…'); waitForManifest(j.hls, 25); }
           else { setMsg('relay error: '+(j.error||'unknown')); }
         }).catch(function(){ setMsg('relay request failed'); });
     } else { setMsg(''); playUrl(u); }
+  }
+  function waitForManifest(url, tries){
+    fetch(url, {cache:'no-store'}).then(function(r){
+      if(r.ok){ setMsg('live (~3s delay)'); playUrl(url); }
+      else if(tries>0){ setTimeout(function(){ waitForManifest(url, tries-1); }, 700); }
+      else { setMsg('stream did not start (relay timeout) — check the URL/codec'); }
+    }).catch(function(){
+      if(tries>0){ setTimeout(function(){ waitForManifest(url, tries-1); }, 700); }
+      else { setMsg('stream fetch failed'); }
+    });
   }
   function stopStream(){
     var v=document.getElementById('video'); destroyHls(); v.removeAttribute('src'); v.load();
