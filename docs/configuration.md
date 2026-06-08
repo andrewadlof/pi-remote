@@ -21,6 +21,7 @@ The server reads its settings from environment variables, supplied on the Pi by
 | `PI_REMOTE_GO2RTC` | `http://127.0.0.1:1984` | go2rtc API the server registers WebRTC streams with |
 | `PI_REMOTE_GO2RTC_PORT` | `1984` | port the browser uses to reach go2rtc's player |
 | `PI_REMOTE_GO2RTC_STREAM` | `android` | preconfigured go2rtc stream used when no URL is typed |
+| `PI_REMOTE_GO2RTC_PUBLIC` | *(empty)* | public base URL of go2rtc behind a TLS proxy, e.g. `https://cam.example.com` (for HTTPS embedding) |
 
 After editing, restart the service:
 

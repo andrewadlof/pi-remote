@@ -48,4 +48,5 @@ nav:
   - Remote UI: remote-ui.md
   - Live preview: preview.md
   - Homey integration: homey.md
+  - Home Assistant: home-assistant.md
   - Troubleshooting: troubleshooting.md

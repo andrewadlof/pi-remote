@@ -36,6 +36,8 @@ RTSP_TRANSPORT = os.environ.get("PI_REMOTE_RTSP_TRANSPORT", "tcp")
 GO2RTC_API    = os.environ.get("PI_REMOTE_GO2RTC", "http://127.0.0.1:1984")
 GO2RTC_PORT   = os.environ.get("PI_REMOTE_GO2RTC_PORT", "1984")
 GO2RTC_STREAM = os.environ.get("PI_REMOTE_GO2RTC_STREAM", "android")
+# Public base URL of go2rtc when behind a TLS reverse proxy, e.g. https://cam.example.com
+GO2RTC_PUBLIC = os.environ.get("PI_REMOTE_GO2RTC_PUBLIC", "")
 
 SHIFT = 0x02
 _MODS = {'CTRL':0x01,'SHIFT':0x02,'ALT':0x04,'GUI':0x08,'WIN':0x08,'META':0x08,
@@ -169,8 +171,12 @@ def webrtc_start(url, host):
                 last = e
         if last is not None:
             raise RuntimeError("go2rtc not reachable: %s" % last)
-    h = (host or "").split(":")[0] or "127.0.0.1"
-    return "http://%s:%s/webrtc.html?src=%s" % (h, GO2RTC_PORT, name)
+    if GO2RTC_PUBLIC:
+        base = GO2RTC_PUBLIC.rstrip("/")
+    else:
+        h = (host or "").split(":")[0] or "127.0.0.1"
+        base = "http://%s:%s" % (h, GO2RTC_PORT)
+    return "%s/webrtc.html?src=%s" % (base, name)
 
 class Handler(BaseHTTPRequestHandler):
     def _auth(self, q):
