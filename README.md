@@ -1,5 +1,12 @@
 # pi-remote
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue?logo=python&logoColor=white)](pyproject.toml)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Deploy docs](https://github.com/andrewadlof/pi-remote/actions/workflows/docs.yml/badge.svg)](https://andrewadlof.github.io/pi-remote/)
+[![Raspberry Pi](https://img.shields.io/badge/platform-Raspberry%20Pi-c51a4a?logo=raspberrypi&logoColor=white)](https://www.raspberrypi.com/)
+[![Provisioning: Ansible](https://img.shields.io/badge/provisioning-Ansible-1A1918?logo=ansible&logoColor=white)](ansible/)
+
 Turn a **Raspberry Pi Zero (W)** into a USB **keyboard + media remote** for an
 Android TV box — driven by a small **HTTP API**, a built-in **web remote**, and
 your **Homey** hub. An optional **Broadlink RM4** integration adds true IR
