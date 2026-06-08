@@ -1,7 +1,7 @@
 site_name: pi-remote
 site_description: >-
   Turn a Raspberry Pi Zero into a USB-HID keyboard + media remote (plus
-  Broadlink IR) for an Android TV box, controllable over HTTP and from Homey.
+  Broadlink IR) for an Android TV box, controllable over HTTP and from Home Assistant.
 site_url: https://andrewadlof.github.io/pi-remote/
 repo_url: https://github.com/andrewadlof/pi-remote
 repo_name: andrewadlof/pi-remote
@@ -47,7 +47,7 @@ nav:
   - IR / Broadlink: ir.md
   - Remote UI: remote-ui.md
   - Live preview: preview.md
-  - Homey integration: homey.md
   - Home Assistant: home-assistant.md
+  - Homey: homey.md
   - Reverse proxy / TLS: reverse-proxy.md
   - Troubleshooting: troubleshooting.md

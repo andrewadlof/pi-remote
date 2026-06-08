@@ -2,7 +2,7 @@
 
 Turn a **Raspberry Pi Zero (W)** into a USB **keyboard + media remote** for an
 Android TV box — controllable over a simple **HTTP API**, a built-in
-**web remote**, and your **Homey** smart-home hub. An optional **Broadlink RM4**
+**web remote**, and **Home Assistant**. An optional **Broadlink RM4**
 integration adds true IR **power on/off** for boxes whose power button is IR.
 
 ## How it works
@@ -19,7 +19,7 @@ A tiny stdlib-only HTTP server (`hid_keyboard_server.py`) turns web requests int
 HID reports, serves the web remote, and shells out to `ir_tool.py` for IR.
 
 ```
-Homey / phone / curl ──HTTP──▶ Pi Zero ──USB HID──▶ Android box
+Home Assistant / curl ──HTTP──▶ Pi Zero ──USB HID──▶ Android box
                                   │
                                   └──Wi-Fi──▶ Broadlink RM4 ──IR──▶ Android box (power)
 ```
@@ -37,7 +37,7 @@ box back on from standby (the box cuts USB power when off, so HID can't wake it)
 - **[Configuration](configuration.md)** — port, API key, paths
 - **[HTTP API](api.md)** — every endpoint with examples
 - **[IR / Broadlink](ir.md)** — learn and send IR codes
-- **[Homey integration](homey.md)** — wire buttons to Flows
+- **[Home Assistant](home-assistant.md)** — control with REST + embed the remote
 - **[Troubleshooting](troubleshooting.md)** — the gotchas, solved
 
 ## Feature summary

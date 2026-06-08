@@ -84,5 +84,5 @@ sudo pip3 install --break-system-packages --no-deps broadlink
 
 - Open `http://<pi-host>:8800/` (append `?token=YOURKEY` if you set an API key).
 - Learn your IR power code — see **[IR / Broadlink](ir.md)**.
-- Wire it to Homey — see **[Homey integration](homey.md)**.
+- Wire it to Home Assistant — see **[Home Assistant](home-assistant.md)**.
 - Give the Pi (and any Broadlink) a DHCP reservation so addresses stay put.

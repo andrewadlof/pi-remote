@@ -1,5 +1,9 @@
 # Homey integration
 
+!!! tip
+    Most users run **Home Assistant** — see **[Home Assistant](home-assistant.md)**
+    for REST control + embedding. This page is the Homey-specific flavor.
+
 Homey drives `pi-remote` by making HTTP calls to the bridge — the same endpoints
 documented in the [HTTP API](api.md). Two common approaches:
 

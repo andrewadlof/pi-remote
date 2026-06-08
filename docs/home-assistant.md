@@ -1,11 +1,83 @@
-# Embedding in Home Assistant
+# Home Assistant
 
-The remote page is frame-friendly (the server sends no `X-Frame-Options`/CSP), so
-Home Assistant can embed it directly.
+Two ways to use pi-remote with Home Assistant: **control it** from automations and
+dashboards (REST calls to the API), and **embed** the web remote in a dashboard.
 
-## Dashboard card
+## Control with REST commands
 
-Add a Webpage (iframe) card:
+Add to `configuration.yaml` (use the Pi's IP or a DHCP-reserved hostname):
+
+```yaml
+rest_command:
+  pi_remote_key:
+    url: "http://192.168.1.XXX:8800/key?key={{ key }}"
+  pi_remote_media:
+    url: "http://192.168.1.XXX:8800/media?key={{ key }}"
+  pi_remote_ir:
+    url: "http://192.168.1.XXX:8800/ir?cmd={{ cmd }}"
+  pi_remote_type:
+    url: "http://192.168.1.XXX:8800/type"
+    method: POST
+    content_type: "application/json"
+    payload: '{"text": "{{ text }}"}'
+```
+
+If you set `PI_REMOTE_API_KEY`, add the header to each command:
+
+```yaml
+    headers:
+      X-API-Key: !secret pi_remote_token
+```
+
+Reload REST commands (Developer Tools → YAML, or restart HA), then call them from
+automations, scripts, or dashboard buttons:
+
+```yaml
+# navigation — UP/DOWN/LEFT/RIGHT/ENTER/BACK/...
+service: rest_command.pi_remote_key
+data:
+  key: DOWN
+
+# media / volume — PLAYPAUSE/VOLUP/VOLDOWN/MUTE/HOME/SEARCH/...
+service: rest_command.pi_remote_media
+data:
+  key: VOLUP
+
+# IR power via the RM4
+service: rest_command.pi_remote_ir
+data:
+  cmd: power
+
+# type into a focused field
+service: rest_command.pi_remote_type
+data:
+  text: "my search term"
+```
+
+### Dashboard buttons
+
+A single button card:
+
+```yaml
+type: button
+name: ▼
+tap_action:
+  action: call-service
+  service: rest_command.pi_remote_key
+  data:
+    key: DOWN
+```
+
+Lay several out in a `grid` for a D-pad, and add a Power button that calls
+`rest_command.pi_remote_ir` with `cmd: power`. (See the [HTTP API](api.md) for the
+full list of keys/media names/IR commands.)
+
+## Embed the web remote
+
+The page is frame-friendly (the server sends no `X-Frame-Options`/CSP), so HA can
+embed it directly.
+
+**Dashboard card** (Webpage / iframe):
 
 ```yaml
 type: iframe
@@ -13,12 +85,9 @@ url: http://192.168.1.XXX:8800/?token=YOURKEY
 aspect_ratio: 75%
 ```
 
-Drop `?token=YOURKEY` if you didn't set `PI_REMOTE_API_KEY`. Prefer a
-DHCP-reserved IP or hostname so the URL stays stable.
+Drop `?token=YOURKEY` if you didn't set `PI_REMOTE_API_KEY`.
 
-## Sidebar panel
-
-To add a left-menu item, in `configuration.yaml`:
+**Sidebar panel** (adds a left-menu item) in `configuration.yaml`:
 
 ```yaml
 panel_iframe:
@@ -28,7 +97,7 @@ panel_iframe:
     url: http://192.168.1.XXX:8800/?token=YOURKEY
 ```
 
-## HTTP vs HTTPS — the mixed-content rule
+### HTTP vs HTTPS — the mixed-content rule
 
 This is the thing that bites everyone:
 
@@ -59,9 +128,7 @@ embed the `https://` URL instead. In short:
 Full **Caddy** and **Traefik** configs are on the
 **[Reverse proxy / TLS](reverse-proxy.md)** page.
 
-## Homey
+## Other hubs
 
-Homey has no generic web-page/iframe widget, so you can't embed the remote in the
-Homey app. Drive pi-remote from Homey via **Flows** (see
-[Homey integration](homey.md)); view the visual remote in a browser or in Home
-Assistant.
+The API is just HTTP, so anything that can make web requests can drive pi-remote.
+Using **Homey** instead? See **[Homey](homey.md)**.

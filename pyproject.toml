@@ -1,12 +1,12 @@
 [project]
 name = "pi-remote"
 version = "0.1.0"
-description = "Raspberry Pi Zero USB-HID + IR remote bridge for an Android TV box, controllable over HTTP and from Homey."
+description = "Raspberry Pi Zero USB-HID + IR remote bridge for an Android TV box, controllable over HTTP and from Home Assistant."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
 authors = [{ name = "Drew Adlof" }]
-keywords = ["raspberry-pi", "usb-gadget", "hid", "android-tv", "broadlink", "homey", "remote"]
+keywords = ["raspberry-pi", "usb-gadget", "hid", "android-tv", "broadlink", "home-assistant", "remote"]
 dependencies = []
 
 [project.optional-dependencies]
