@@ -86,11 +86,10 @@ Manual installation, the full API, and every gotcha are documented in **[docs/](
 
 ## Documentation
 
-Browse `docs/`, or build the site locally:
+Browse `docs/`, or build the site locally with [uv](https://docs.astral.sh/uv/):
 
 ```bash
-pip install -r docs/requirements.txt
-mkdocs serve
+uv run --extra docs mkdocs serve
 ```
 
 ## Credits & license

@@ -1,5 +1,5 @@
-# Build the docs site locally:
-#   pip install -r docs/requirements.txt
-#   mkdocs serve
+# Docs dependencies — mirrors the [docs] extra in pyproject.toml.
+# Preferred (uv):     uv run --extra docs mkdocs serve
+# Using this file:    uv pip install -r docs/requirements.txt
 mkdocs>=1.5
 mkdocs-material>=9.5

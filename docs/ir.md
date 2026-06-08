@@ -8,14 +8,31 @@ and speaks the box's native IR.
 `ir_tool.py` learns and replays IR codes; the server exposes them at
 `/ir?cmd=NAME`.
 
-## Install python-broadlink (armv6-safe)
+## Install python-broadlink
 
-The Pi Zero is **armv6**, which has no prebuilt `cryptography` wheel — installing
-from PyPI would trigger a doomed source build. Use the apt build instead:
+The HTTP bridge runs under the **system** Python (`/usr/bin/python3`), so
+`broadlink` must be importable there. How you install it depends on the Pi's
+architecture.
+
+### Raspberry Pi Zero / Zero W (armv6)
+
+There is no `uv` build for armv6 **and** no `cryptography` wheel for armv6, so a
+plain `uv`/`pip` install would trigger a doomed source build. Reuse apt's prebuilt
+`cryptography` and add broadlink on top with `--no-deps`:
 
 ```bash
 sudo apt install -y python3-cryptography python3-pip
 sudo pip3 install --break-system-packages --no-deps broadlink
+python3 -c "import broadlink; print(broadlink.discover)"   # sanity check
+```
+
+### 64-bit Pi — Zero 2 W, Pi 3/4/5 (aarch64)
+
+Here `cryptography` ships an aarch64 wheel and `uv` is available, so install it
+into the system environment with uv:
+
+```bash
+uv pip install --system --break-system-packages broadlink
 python3 -c "import broadlink; print(broadlink.discover)"   # sanity check
 ```
 

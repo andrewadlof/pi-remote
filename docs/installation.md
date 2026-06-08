@@ -70,9 +70,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now usb-gadget.service hid-keyboard-server.service
 ```
 
-For IR, install broadlink (see **[IR / Broadlink](ir.md)**):
+For IR, install broadlink. On the **armv6** Pi Zero / Zero W use apt's
+`cryptography` (no armv6 wheel for `uv`/`pip`); on a **64-bit** Pi you can use
+`uv pip install --system broadlink`. Full details in **[IR / Broadlink](ir.md)**:
 
 ```bash
+# Pi Zero / Zero W (armv6)
 sudo apt install -y python3-cryptography python3-pip
 sudo pip3 install --break-system-packages --no-deps broadlink
 ```

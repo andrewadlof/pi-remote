@@ -55,8 +55,10 @@ Expected: the box cuts USB power in standby, so HID can't wake it. Use the
 
 - `AttributeError: module 'broadlink' has no attribute '__version__'` → harmless;
   the import worked. Test with `broadlink.discover`.
-- pip trying to **build cryptography** → you skipped the apt step. Install
-  `python3-cryptography` from apt and use `pip install --no-deps broadlink`.
+- `uv`/`pip` trying to **build cryptography** (armv6 Pi Zero) → you skipped the
+  apt step. Install `python3-cryptography` from apt and use
+  `pip3 install --break-system-packages --no-deps broadlink`. (`uv` has no armv6
+  build; on 64-bit Pis `uv pip install --system broadlink` works directly.)
 
 ## Service won't start after reboot
 
