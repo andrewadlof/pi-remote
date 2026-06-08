@@ -126,7 +126,7 @@ def stream_start(url):
     if RTSP_TRANSPORT and RTSP_TRANSPORT.lower() != "auto":
         cmd += ["-rtsp_transport", RTSP_TRANSPORT]
     cmd += ["-i", url, "-an", "-c:v", "copy",
-            "-f", "hls", "-hls_time", "1", "-hls_list_size", "4",
+            "-f", "hls", "-hls_time", "1", "-hls_list_size", "3",
             "-hls_flags", "delete_segments+append_list+omit_endlist",
             "-hls_segment_filename", os.path.join(STREAM_DIR, "seg_%05d.ts"),
             os.path.join(STREAM_DIR, "live.m3u8")]
