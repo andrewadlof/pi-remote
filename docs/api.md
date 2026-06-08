@@ -89,6 +89,20 @@ curl "http://pi:8800/stream/stop"
 `start`/`stop` honour the API key. The generated playlist/segments are served at
 `GET /stream/<name>.m3u8|.ts` **without** auth so any HLS player can read them.
 
+## `GET /webrtc/start` — low-latency WebRTC preview (go2rtc)
+
+Registers the RTSP source with [go2rtc](https://github.com/AlexxIT/go2rtc) and
+returns an embeddable WebRTC player URL (sub-second latency). Requires go2rtc
+running — see [Live preview](preview.md).
+
+```bash
+curl "http://pi:8800/webrtc/start?url=rtsp://192.168.1.176:554/live/second/unicast/av_stream"
+# -> {"embed":"http://pi:1984/webrtc.html?src=preview"}
+```
+
+With no `url`, returns the player for the preconfigured stream
+(`PI_REMOTE_GO2RTC_STREAM`).
+
 ## Status / errors
 
 | Code | Meaning |

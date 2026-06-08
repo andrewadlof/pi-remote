@@ -14,3 +14,5 @@
     - hid_server
     - role: broadlink_ir
       when: install_broadlink | bool
+    - role: go2rtc
+      when: install_go2rtc | bool

@@ -1,0 +1,10 @@
+# Managed by Ansible (pi-remote). Streams can also be added at runtime via the
+# go2rtc API (the web remote's WebRTC button does this for the URL you type).
+log:
+  level: info
+api:
+  listen: ":{{ go2rtc_api_port }}"
+{% if webrtc_rtsp_url %}
+streams:
+  {{ go2rtc_stream_name }}: {{ webrtc_rtsp_url }}
+{% endif %}

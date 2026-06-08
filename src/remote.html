@@ -85,8 +85,10 @@
   <div class="row">
     <input id="surl" placeholder="rtsp://…  or  https://….m3u8" autocapitalize="off" autocomplete="off" spellcheck="false">
     <button onclick="loadStream()">Load</button>
+    <button class="sec" onclick="loadWebrtc()" title="Low-latency via go2rtc">WebRTC</button>
   </div>
   <video id="video" controls playsinline muted></video>
+  <iframe id="wrtc" allow="autoplay;fullscreen" style="display:none;width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#000;"></iframe>
   <div class="row">
     <button class="sec" onclick="stopStream()">⏹ Stop preview</button>
   </div>
@@ -132,6 +134,7 @@
   function loadStream(){
     var u=document.getElementById('surl').value.trim();
     if(!u){ setMsg('enter a stream URL'); return; }
+    showVideo();
     localStorage.setItem('pi_remote_surl', u);
     if(/^rtsps?:\/\//i.test(u)){
       setMsg('starting RTSP relay…');
@@ -153,8 +156,25 @@
       else { setMsg('stream fetch failed'); }
     });
   }
+  function showVideo(){ var f=document.getElementById('wrtc'); f.src='about:blank'; f.style.display='none'; document.getElementById('video').style.display=''; }
+  function showFrame(src){
+    destroyHls(); var v=document.getElementById('video'); try{v.pause();}catch(e){} v.removeAttribute('src'); v.load();
+    v.style.display='none'; var f=document.getElementById('wrtc'); f.src=src; f.style.display='';
+  }
+  function loadWebrtc(){
+    var u=document.getElementById('surl').value.trim();
+    localStorage.setItem('pi_remote_surl', u);
+    setMsg('starting WebRTC (go2rtc)…');
+    var a=auth(u?('url='+encodeURIComponent(u)):'');
+    fetch('/webrtc/start'+(a?'?'+a:'')).then(function(r){ return r.json(); }).then(function(j){
+      if(j.embed){ setMsg('WebRTC — low latency'); showFrame(j.embed); }
+      else { setMsg('webrtc error: '+(j.error||'unknown')); }
+    }).catch(function(){ setMsg('webrtc request failed'); });
+  }
   function stopStream(){
-    var v=document.getElementById('video'); destroyHls(); v.removeAttribute('src'); v.load();
+    destroyHls();
+    var v=document.getElementById('video'); try{v.pause();}catch(e){} v.removeAttribute('src'); v.load();
+    showVideo();
     var a=auth(''); fetch('/stream/stop'+(a?'?'+a:'')).catch(function(){});
     setMsg('stopped');
   }

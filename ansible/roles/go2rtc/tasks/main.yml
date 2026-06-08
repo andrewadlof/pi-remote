@@ -1,0 +1,33 @@
+---
+# go2rtc: low-latency RTSP -> WebRTC gateway (optional).
+# Pi Zero W is armv6; go2rtc ships a matching binary. For 64-bit Pis set
+# go2rtc_arch: arm64. Asset names: https://github.com/AlexxIT/go2rtc/releases
+
+- name: Download go2rtc binary
+  ansible.builtin.get_url:
+    url: "https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_{{ go2rtc_arch }}"
+    dest: /usr/local/bin/go2rtc
+    mode: "0755"
+
+- name: go2rtc config
+  ansible.builtin.template:
+    src: go2rtc.yaml.j2
+    dest: /etc/go2rtc.yaml
+    mode: "0644"
+  notify: restart go2rtc
+
+- name: go2rtc service
+  ansible.builtin.template:
+    src: go2rtc.service.j2
+    dest: /etc/systemd/system/go2rtc.service
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart go2rtc
+
+- name: Enable and start go2rtc
+  ansible.builtin.systemd:
+    name: go2rtc.service
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -27,4 +27,11 @@ gadget_product_id: "0x0104"
 # ---------- features / behaviour ----------
 install_broadlink: true        # install python-broadlink for IR (RM4 etc.)
 install_ffmpeg: true           # install ffmpeg for the RTSP live-preview relay
+install_go2rtc: true           # install go2rtc for low-latency WebRTC preview
 allow_reboot: true             # reboot automatically when boot config changes
+
+# ---------- go2rtc (WebRTC preview) ----------
+go2rtc_arch: armv6             # Pi Zero/Zero W = armv6; 64-bit Pi = arm64
+go2rtc_api_port: 1984
+go2rtc_stream_name: android
+webrtc_rtsp_url: ""            # optional preconfigured stream; UI can also add ad-hoc

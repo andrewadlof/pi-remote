@@ -17,7 +17,7 @@ Configuration is read from environment variables (see config/config.example.env)
   PI_REMOTE_PORT, PI_REMOTE_API_KEY, PI_REMOTE_KEY_DELAY,
   PI_REMOTE_HTML, PI_REMOTE_IR_TOOL, PI_REMOTE_HID_KBD, PI_REMOTE_HID_CONSUMER
 """
-import glob, json, os, re, subprocess, sys, time
+import glob, json, os, re, subprocess, sys, time, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -32,6 +32,10 @@ STREAM_DIR   = os.environ.get("PI_REMOTE_STREAM_DIR", "/dev/shm/pi-remote-stream
 FFMPEG       = os.environ.get("PI_REMOTE_FFMPEG", "ffmpeg")
 # RTSP transport: tcp | udp | udp_multicast | http | auto (auto = let ffmpeg choose)
 RTSP_TRANSPORT = os.environ.get("PI_REMOTE_RTSP_TRANSPORT", "tcp")
+# go2rtc (optional, for low-latency WebRTC preview)
+GO2RTC_API    = os.environ.get("PI_REMOTE_GO2RTC", "http://127.0.0.1:1984")
+GO2RTC_PORT   = os.environ.get("PI_REMOTE_GO2RTC_PORT", "1984")
+GO2RTC_STREAM = os.environ.get("PI_REMOTE_GO2RTC_STREAM", "android")
 
 SHIFT = 0x02
 _MODS = {'CTRL':0x01,'SHIFT':0x02,'ALT':0x04,'GUI':0x08,'WIN':0x08,'META':0x08,
@@ -146,6 +150,28 @@ def stream_stop():
             except Exception: pass
     _ffmpeg = None
 
+def webrtc_start(url, host):
+    """Register an RTSP source with go2rtc and return an embeddable WebRTC player URL."""
+    name = GO2RTC_STREAM
+    url = (url or "").strip()
+    if url:
+        if not re.match(r'^rtsps?://', url, re.I):
+            raise ValueError("only rtsp:// URLs can be relayed")
+        name = "preview"
+        qs = urllib.parse.urlencode({"name": name, "src": url})
+        api = GO2RTC_API.rstrip("/") + "/api/streams?" + qs
+        last = None
+        for method in ("PUT", "POST"):
+            try:
+                urllib.request.urlopen(urllib.request.Request(api, method=method), timeout=5).read()
+                last = None; break
+            except Exception as e:
+                last = e
+        if last is not None:
+            raise RuntimeError("go2rtc not reachable: %s" % last)
+    h = (host or "").split(":")[0] or "127.0.0.1"
+    return "http://%s:%s/webrtc.html?src=%s" % (h, GO2RTC_PORT, name)
+
 class Handler(BaseHTTPRequestHandler):
     def _auth(self, q):
         if not API_KEY: return True
@@ -215,11 +241,12 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/ir':             ir_send(gv('cmd')); return self._send(200, {'ir': gv('cmd')})
             if path == '/stream/start':   return self._send(200, {'hls': stream_start(gv('url'))})
             if path == '/stream/stop':    stream_stop(); return self._send(200, {'stopped': True})
+            if path == '/webrtc/start':   return self._send(200, {'embed': webrtc_start(gv('url'), self.headers.get('Host',''))})
         except KeyError as e:          return self._send(400, {'error':'unknown key: %s' % e})
         except ValueError as e:        return self._send(400, {'error':'%s' % e})
         except RuntimeError as e:      return self._send(502, {'error':'%s' % e})
         except FileNotFoundError as e: return self._send(503, {'error':'device missing: %s' % e})
-        return self._send(200, {'status':'ok','endpoints':['/','/type','/key','/press','/media','/ir','/stream/start','/stream/stop']})
+        return self._send(200, {'status':'ok','endpoints':['/','/type','/key','/press','/media','/ir','/stream/start','/stream/stop','/webrtc/start']})
     def log_message(self, *a): pass
 
 def wait_for(path, timeout=30):

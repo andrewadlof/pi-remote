@@ -18,6 +18,9 @@ The server reads its settings from environment variables, supplied on the Pi by
 | `PI_REMOTE_FFMPEG` | `ffmpeg` | ffmpeg binary for the RTSP live preview |
 | `PI_REMOTE_STREAM_DIR` | `/dev/shm/pi-remote-stream` | HLS output dir (keep on tmpfs) |
 | `PI_REMOTE_RTSP_TRANSPORT` | `tcp` | `tcp`/`udp`/`udp_multicast`/`http`/`auto` — use `udp_multicast` for multicast URLs |
+| `PI_REMOTE_GO2RTC` | `http://127.0.0.1:1984` | go2rtc API the server registers WebRTC streams with |
+| `PI_REMOTE_GO2RTC_PORT` | `1984` | port the browser uses to reach go2rtc's player |
+| `PI_REMOTE_GO2RTC_STREAM` | `android` | preconfigured go2rtc stream used when no URL is typed |
 
 After editing, restart the service:
 

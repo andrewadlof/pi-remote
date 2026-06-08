@@ -28,7 +28,7 @@ helper for IR.
 - D-pad / OK / Back navigation, free-text entry, key combos (Ctrl+A, Alt+Tab)
 - Media transport + volume via HID consumer control
 - IR **power** (and any other IR button) via a Broadlink RM4
-- **Live preview** of the box's screen (RTSP→HLS relay) under the remote
+- **Live preview** of the box's screen under the remote — RTSP→HLS, or sub-second **WebRTC** via go2rtc
 - Mobile-friendly **web remote** (Add-to-Home-Screen capable)
 - Optional shared-secret auth; CORS enabled
 - Boot-persistent via **systemd**; reproducible via **Ansible**
